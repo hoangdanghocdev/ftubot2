@@ -1,0 +1,5 @@
+{
+  "name": "FTU AI Chatbot",
+  "description": "A web-based chatbot powered by Gemini, featuring a clean user interface similar to Google's Gemini. It supports text and image inputs, and implements a message limit for non-authenticated users.",
+  "requestFramePermissions": []
+}
