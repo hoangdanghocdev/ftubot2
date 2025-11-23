@@ -1,8 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { User, onAuthStateChanged } from "firebase/auth";
 import { Message, ImagePart, MessagePart } from "./types";
-import { generateContentStream } from "./services/geminiService";
-import { fileToGenerativePart } from "./utils/fileUtils";
 import Header from "./components/Header";
 import MessageList from "./components/MessageList";
 import ChatInput from "./components/ChatInput";
@@ -92,6 +90,20 @@ const App: React.FC = () => {
   const handleSend = useCallback(
     async (prompt: string, imageFile: File | null) => {
       if (!prompt.trim() && !imageFile) return;
+
+      // Helper function to convert file to base64 generative part
+      const fileToGenerativePart = async (file: File): Promise<ImagePart['inlineData']> => {
+        const base64EncodedData = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+          reader.readAsDataURL(file);
+        });
+        return {
+          mimeType: file.type,
+          data: base64EncodedData,
+        };
+      };
+
       if (!user && userMessageCount >= GUEST_MESSAGE_LIMIT) {
         alert(
           "You have reached the 3-message limit for guests. Please sign in to continue chatting."
@@ -157,26 +169,49 @@ const App: React.FC = () => {
       setIsLoading(true);
 
       try {
-        const stream = await generateContentStream(
-          prompt,
-          imagePart ? [imagePart] : []
-        );
+        // Gọi đến backend proxy
+        const response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            prompt: prompt,
+            imageParts: imagePart ? [imagePart] : undefined,
+            history: currentMessages, // Gửi lịch sử chat hiện tại
+          }),
+        });
+
+        if (!response.ok || !response.body) {
+          throw new Error('Failed to get streaming response from server.');
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
         let fullResponse = "";
-        for await (const chunk of stream) {
+
+        // Đọc stream từ server
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
           fullResponse += chunk;
-          setConversations((prev) => {
-            const currentConv = [...(prev[activeChatId] || [])];
-            const lastMessage = currentConv[currentConv.length - 1];
-            if (lastMessage && lastMessage.role === "model") {
-              lastMessage.parts = [{ text: fullResponse }];
-            }
-            return { ...prev, [activeChatId]: currentConv };
+
+          // Cập nhật UI theo thời gian thực
+          setConversations(prev => {
+              const currentConv = [...(prev[activeChatId] || [])];
+              const lastMessage = currentConv[currentConv.length - 1];
+              if (lastMessage && lastMessage.role === 'model') {
+                  lastMessage.parts = [{ text: fullResponse }];
+              }
+              return { ...prev, [activeChatId]: currentConv };
           });
         }
       } catch (error) {
-        console.error("Error from Gemini API stream:", error);
+        console.error("Error connecting to backend proxy:", error);
         const errorMessageText =
-          "Oops! Something went wrong while connecting to the AI. Please check your API key and try again.";
+          "Oops! Something went wrong while connecting to the AI. Please try again later.";
         setConversations((prev) => {
           const currentConv = [...(prev[activeChatId] || [])];
           const lastMessage = currentConv[currentConv.length - 1];

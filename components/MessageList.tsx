@@ -20,7 +20,7 @@ const LoadingIndicator: React.FC = () => (
 const WelcomeScreen: React.FC = () => (
   <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 dark:text-gray-400 pb-20">
     <img
-      src="logo/ftu-logo.png"
+      src="logo/FTU-logo.png"
       alt="FTU Logo"
       className="w-20 h-20 mb-4 rounded-full"
     />

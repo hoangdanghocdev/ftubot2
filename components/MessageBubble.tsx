@@ -99,7 +99,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     <div className={`flex items-start gap-3 ${containerClasses}`}>
       {!isUser && (
         <img
-          src="logo/ftu-logo.png"
+          src="logo/FTU-logo.png"
           alt="Bot Avatar"
           className="w-8 h-8 rounded-full flex-shrink-0"
         />
