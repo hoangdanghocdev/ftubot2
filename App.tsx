@@ -6,6 +6,10 @@ import MessageList from "./components/MessageList";
 import ChatInput from "./components/ChatInput";
 import Sidebar, { ChatSession } from "./Sidebar";
 import { auth } from "./services/firebase";
+import { getUserPersona, saveUserPersona } from "./services/firestoreService";
+import { getDefaultPersona } from "./services/personaService";
+import FormFilling from "./components/FormFilling";
+import AudioCreation from "./components/AudioCreation";
 
 export interface Conversation {
   [chatId: number]: Message[];
@@ -23,29 +27,48 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [userMessageCount, setUserMessageCount] = useState<number>(0);
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null);
+  const [activeFeature, setActiveFeature] = useState<'chat' | 'forms' | 'audio'>('chat');
 
   const GUEST_MESSAGE_LIMIT = 3;
 
   const messages = conversations[activeChatId] || [];
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser); // Cập nhật trạng thái người dùng
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
       if (currentUser) {
-        // Người dùng đã đăng nhập, reset lại bộ đếm tin nhắn của khách
         setUserMessageCount(0);
+        // Load user's persona preference
+        const savedPersonaId = await getUserPersona(currentUser.uid);
+        if (savedPersonaId) {
+          setSelectedPersonaId(savedPersonaId);
+        } else {
+          // Set default persona
+          const defaultPersona = getDefaultPersona();
+          setSelectedPersonaId(defaultPersona.id);
+          await saveUserPersona(currentUser.uid, defaultPersona.id);
+        }
       } else {
         // Reset to guest state if user signs out
         const initialChatId = 1;
         setChatHistory([{ id: initialChatId, name: "Welcome Chat" }]);
         setConversations({ [initialChatId]: [] });
         setActiveChatId(initialChatId);
-        // Reset bộ đếm tin nhắn khi người dùng đăng xuất
         setUserMessageCount(0);
+        setSelectedPersonaId(null);
+        setActiveFeature('chat');
       }
     });
-    return () => unsubscribe(); // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, []);
+
+  const handlePersonaChange = useCallback(async (personaId: string) => {
+    setSelectedPersonaId(personaId);
+    if (user) {
+      await saveUserPersona(user.uid, personaId);
+    }
+  }, [user]);
 
   const handleNewChat = useCallback(() => {
     const newChatId = Date.now();
@@ -169,16 +192,16 @@ const App: React.FC = () => {
       setIsLoading(true);
 
       try {
-        // Gọi đến backend proxy
-        const response = await fetch('/api/generate', {
+        // Call backend proxy
+        const response = await fetch('/api/chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             prompt: prompt,
-            imageParts: imagePart ? [imagePart] : undefined,
-            history: currentMessages, // Gửi lịch sử chat hiện tại
+            imageParts: imagePart ? [imagePart] : [],
+            persona: selectedPersonaId,
           }),
         });
 
@@ -189,24 +212,46 @@ const App: React.FC = () => {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let fullResponse = "";
+        let buffer = '';
 
-        // Đọc stream từ server
+        // Read Server-Sent Events stream
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
 
-          const chunk = decoder.decode(value);
-          fullResponse += chunk;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
 
-          // Cập nhật UI theo thời gian thực
-          setConversations(prev => {
-              const currentConv = [...(prev[activeChatId] || [])];
-              const lastMessage = currentConv[currentConv.length - 1];
-              if (lastMessage && lastMessage.role === 'model') {
-                  lastMessage.parts = [{ text: fullResponse }];
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.error) {
+                  throw new Error(data.error);
+                }
+                if (data.done) {
+                  break;
+                }
+                if (data.text) {
+                  fullResponse += data.text;
+                  // Update UI in real-time
+                  setConversations(prev => {
+                    const currentConv = [...(prev[activeChatId] || [])];
+                    const lastMessage = currentConv[currentConv.length - 1];
+                    if (lastMessage && lastMessage.role === 'model') {
+                      lastMessage.parts = [{ text: fullResponse }];
+                    }
+                    return { ...prev, [activeChatId]: currentConv };
+                  });
+                }
+              } catch (e) {
+                if (!(e instanceof SyntaxError)) {
+                  throw e;
+                }
               }
-              return { ...prev, [activeChatId]: currentConv };
-          });
+            }
+          }
         }
       } catch (error) {
         console.error("Error connecting to backend proxy:", error);
@@ -224,7 +269,7 @@ const App: React.FC = () => {
         setIsLoading(false);
       }
     },
-    [user, userMessageCount, conversations, activeChatId, chatHistory]
+    [user, userMessageCount, conversations, activeChatId, chatHistory, selectedPersonaId]
   );
 
   const isChatBlocked = !user && userMessageCount >= GUEST_MESSAGE_LIMIT;
@@ -241,22 +286,38 @@ const App: React.FC = () => {
         onRenameChat={handleRenameChat}
       />
       <div className="flex flex-col flex-1 overflow-hidden">
-        <Header isLoggedIn={!!user} />
+        <Header 
+          isLoggedIn={!!user}
+          selectedPersonaId={selectedPersonaId}
+          onPersonaChange={handlePersonaChange}
+          activeFeature={activeFeature}
+          onFeatureChange={setActiveFeature}
+        />
         <div className="relative flex-1 w-full flex flex-col overflow-hidden">
-          <main className="flex-1 overflow-y-auto">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 h-full">
-              <MessageList messages={messages} isLoading={isLoading} />
-            </div>
-          </main>
-          <footer className="w-full border-t border-gray-800 p-2 sm:p-4 bg-black/80 backdrop-blur-sm">
-            <div className="max-w-4xl mx-auto">
-              <ChatInput
-                onSend={handleSend}
-                isLoading={isLoading}
-                isBlocked={isChatBlocked}
-              />
-            </div>
-          </footer>
+          {activeFeature === 'chat' && (
+            <>
+              <main className="flex-1 overflow-y-auto">
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 h-full">
+                  <MessageList messages={messages} isLoading={isLoading} />
+                </div>
+              </main>
+              <footer className="w-full border-t border-gray-800 p-2 sm:p-4 bg-black/80 backdrop-blur-sm">
+                <div className="max-w-4xl mx-auto">
+                  <ChatInput
+                    onSend={handleSend}
+                    isLoading={isLoading}
+                    isBlocked={isChatBlocked}
+                  />
+                </div>
+              </footer>
+            </>
+          )}
+          {activeFeature === 'forms' && user && (
+            <FormFilling userId={user.uid} />
+          )}
+          {activeFeature === 'audio' && user && (
+            <AudioCreation userId={user.uid} />
+          )}
         </div>
       </div>
     </div>

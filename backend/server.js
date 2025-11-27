@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
+import { getRAGContext } from './ragLoader.js';
 
 // Load environment variables
 dotenv.config();
@@ -23,7 +24,11 @@ if (!process.env.GEMINI_API_KEY) {
 }
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const model = 'gemini-2.5-pro';
+// const model = 'gemini-2.5-pro';
+const model = 'gemini-flash-lite-latest';
+
+// Default system prompt - applies to all conversations
+const DEFAULT_SYSTEM_PROMPT = 'Bạn là trợ lý AI Tiếng Việt, chuyên biệt cho người Việt Nam, cụ thể là sinh viên Đại học Ngoại thương (FTU). Bạn cần trả lời các câu hỏi của người dùng một cách chuyên nghiệp và hữu ích.';
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -33,10 +38,35 @@ app.get('/health', (req, res) => {
 // Chat endpoint - streams responses
 app.post('/api/chat', async (req, res) => {
   try {
-    const { prompt, imageParts } = req.body;
+    const { prompt, imageParts, persona } = req.body;
 
     if (!prompt && (!imageParts || imageParts.length === 0)) {
       return res.status(400).json({ error: 'Prompt or image is required' });
+    }
+
+    // Get persona system prompt if provided
+    let personaPrompt = '';
+    if (persona) {
+      const { getPersonaById } = await import('../services/personaService.js');
+      const personaData = getPersonaById(persona);
+      if (personaData) {
+        personaPrompt = personaData.systemPrompt;
+      }
+    }
+
+    // Load RAG context from text files
+    const ragContext = await getRAGContext();
+
+    // Combine default system prompt with persona prompt and RAG context
+    let systemPrompt = DEFAULT_SYSTEM_PROMPT;
+    
+    if (personaPrompt) {
+      systemPrompt = `${DEFAULT_SYSTEM_PROMPT}\n\n${personaPrompt}`;
+    }
+    
+    // Add RAG context if available
+    if (ragContext) {
+      systemPrompt = `${systemPrompt}\n\n--- Thông tin tham khảo ---\n${ragContext}`;
     }
 
     // Prepare parts for Gemini API
@@ -46,8 +76,12 @@ app.post('/api/chat', async (req, res) => {
       parts.push(...imageParts);
     }
     
+    // Add system prompt with user prompt
     if (prompt) {
-      parts.push({ text: prompt });
+      parts.push({ text: `${systemPrompt}\n\nUser: ${prompt}` });
+    } else if (systemPrompt && imageParts && imageParts.length > 0) {
+      // If only images, still include system prompt
+      parts.push({ text: systemPrompt });
     }
 
     // Set up Server-Sent Events for streaming
