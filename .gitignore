@@ -16,9 +16,9 @@ dist-ssr
 .env*.save
 
 # Backend
-backend/.env
-backend/node_modules
-backend/*.log
+# backend/.env
+# backend/node_modules
+# backend/*.log
 
 # Editor directories and files
 .vscode/*
