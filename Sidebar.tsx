@@ -76,7 +76,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <div
-      className={`relative p-2 flex flex-col transition-all duration-300 ease-in-out ${
+      className={`sidebar relative p-2 flex flex-col transition-all duration-300 ease-in-out ${
         isExpanded ? "w-64" : "w-16"
       }`}
       style={{

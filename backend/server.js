@@ -124,7 +124,8 @@ app.post("/api/chat", async (req, res) => {
       res.end();
     }
   } catch (error) {
-    console.error("Error in /api/chat:", error);
+    console.error("Error in /api/chat:", error.message);
+    console.error("Error stack:", error.stack);
     if (!res.headersSent) {
       res.status(500).json({ error: "Internal server error" });
     }

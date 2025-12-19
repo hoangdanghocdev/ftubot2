@@ -34,8 +34,6 @@ const App: React.FC = () => {
     "chat" | "forms" | "audio"
   >("chat");
 
-
-
   const GUEST_MESSAGE_LIMIT = 3;
 
   const messages = conversations[activeChatId] || [];
@@ -44,17 +42,32 @@ const App: React.FC = () => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        setUserMessageCount(0);
-        // Load user's persona preference
-        const savedPersonaId = await getUserPersona(currentUser.uid);
-        if (savedPersonaId) {
-          setSelectedPersonaId(savedPersonaId);
-        } else {
-          // Set default persona
-          const defaultPersona = getDefaultPersona();
-          setSelectedPersonaId(defaultPersona.id);
-          await saveUserPersona(currentUser.uid, defaultPersona.id);
-        }
+        // Delay persona loading slightly to allow Firestore client to connect
+        setTimeout(async () => {
+          setUserMessageCount(0);
+          try {
+            // Load user's persona preference
+            const savedPersonaId = await getUserPersona(currentUser.uid);
+            if (savedPersonaId) {
+              setSelectedPersonaId(savedPersonaId);
+            } else {
+              // Set default persona if none is saved
+              const defaultPersona = getDefaultPersona();
+              setSelectedPersonaId(defaultPersona.id);
+              // Save the default persona for future visits
+              await saveUserPersona(currentUser.uid, defaultPersona.id);
+            }
+          } catch (error) {
+            console.error(
+              "Initial persona load failed, possibly due to offline client:",
+              error
+            );
+            // Set a default persona temporarily so the app can continue.
+            // The user can change it later.
+            const defaultPersona = getDefaultPersona();
+            setSelectedPersonaId(defaultPersona.id);
+          }
+        }, 500); // 500ms delay
       } else {
         // Reset to guest state if user signs out
         const initialChatId = 1;
@@ -215,6 +228,12 @@ const App: React.FC = () => {
           }),
         });
 
+        if (response.status === 500) {
+          throw new Error(
+            "Server responded with a 500 Internal Server Error. Check the backend logs for details."
+          );
+        }
+
         if (!response.ok || !response.body) {
           // In lỗi ra console để biết nó là 404 hay 500
           console.error("Lỗi HTTP:", response.status, response.statusText);
@@ -319,18 +338,21 @@ const App: React.FC = () => {
           chatHistory={chatHistory}
           onDeleteChat={handleDeleteChat}
           onRenameChat={handleRenameChat}
+          activeFeature={activeFeature}
+          onFeatureChange={setActiveFeature}
         />
         <div className="flex flex-col flex-1 overflow-hidden">
           <Header
+            isLoggedIn={!!user}
             user={user}
             selectedPersonaId={selectedPersonaId}
             onPersonaChange={handlePersonaChange}
             activeFeature={activeFeature}
             onFeatureChange={setActiveFeature}
           />
-          <div 
+          <div
             className="relative flex-1 w-full flex flex-col overflow-hidden transition-colors duration-300"
-            style={{ backgroundColor: 'var(--bg-primary)' }}
+            style={{ backgroundColor: "var(--bg-primary)" }}
           >
             {activeFeature === "chat" && (
               <>
@@ -342,8 +364,8 @@ const App: React.FC = () => {
                 <footer
                   className="w-full border-t p-2 sm:p-4 backdrop-blur-sm"
                   style={{
-                    borderColor: 'var(--border-color)',
-                    backgroundColor: 'var(--bg-primary)', // Using --bg-primary, adjust if a different background is desired
+                    borderColor: "var(--border-color)",
+                    backgroundColor: "var(--bg-primary)", // Using --bg-primary, adjust if a different background is desired
                   }}
                 >
                   <div className="max-w-4xl mx-auto">
@@ -370,4 +392,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-

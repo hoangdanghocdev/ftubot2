@@ -1,90 +1,155 @@
-import React from 'react';
-import { getAuth, signOut } from "firebase/auth";
-import { useTheme } from "./ThemeContext"; // QUAN TRỌNG: Phải import dòng này
+import React from "react";
+import {
+  getAuth,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signOut,
+} from "firebase/auth";
+import { User } from "firebase/auth";
 
-function Header({ user }) {
-  const auth = getAuth(); // Khởi tạo auth
-  const { theme, toggleTheme } = useTheme(); // Use the theme hook
+interface HeaderProps {
+  isLoggedIn: boolean;
+  selectedPersonaId: string | null;
+  onPersonaChange: (personaId: string) => void;
+  activeFeature: "chat" | "forms" | "audio";
+  onFeatureChange: (feature: "chat" | "forms" | "audio") => void;
+  // Các props dưới đây có thể không được truyền từ App.tsx hiện tại,
+  // nhưng chúng ta thêm vào để code mới hoạt động mà không gây lỗi.
+  user?: User | null;
+  isDarkMode?: boolean;
+  toggleDarkMode?: () => void;
+}
 
-  // Hàm xử lý đăng xuất
+const Header: React.FC<HeaderProps> = ({
+  isLoggedIn,
+  user,
+  isDarkMode,
+  toggleDarkMode,
+  onFeatureChange,
+  activeFeature,
+}) => {
+  const auth = getAuth();
+  const provider = new GoogleAuthProvider();
+
+  // Đăng nhập
+  const handleSignIn = async () => {
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error("Lỗi đăng nhập:", error);
+    }
+  };
+
+  // Đăng xuất
   const handleSignOut = async () => {
-    const confirmLogout = window.confirm("Bạn có chắc chắn muốn đăng xuất?");
-    if (confirmLogout) {
+    // Thêm log để kiểm tra xem nút có bấm được không
+    console.log("Đang bấm nút đăng xuất...");
+    if (window.confirm("Bạn muốn đăng xuất?")) {
       try {
         await signOut(auth);
-        console.log("Đã đăng xuất thành công");
-        window.location.reload(); // Tải lại trang để về màn hình đăng nhập
+        window.location.reload();
       } catch (error) {
         console.error("Lỗi đăng xuất:", error);
-        alert("Lỗi đăng xuất: " + error.message);
       }
     }
   };
 
   return (
-    <header className={`header-container ${theme}`}>
-      
-      {/* 1. Logo & Tên trường */}
+    <div
+      className={`header-container ${isDarkMode ? "dark" : "light"}`}
+      // THÊM: Style inline để ép Header nổi lên trên cùng
+      style={{
+        position: "relative",
+        zIndex: 9999,
+      }}
+    >
+      {/* Logo */}
       <div className="header-left">
-        <img src="logo-ftu.png" alt="Logo" className="logo" /> {/* Thay đường dẫn ảnh của bạn */}
-        <span className="school-name">TRƯỜNG ĐẠI HỌC NGOẠI THƯƠNG</span>
+        <span
+          className="school-name"
+          style={{ fontWeight: "bold", fontSize: "18px" }}
+        >
+          TRƯỜNG ĐẠI HỌC NGOẠI THƯƠNG
+        </span>
       </div>
 
-      {/* 2. Bên phải: Dark Mode + User Profile */}
-      <div className="header-right">
-        
-        {/* Nút Chuyển chế độ Sáng/Tối */}
-        <button 
-            className="theme-toggle" 
-            onClick={toggleTheme}
-            title="Đổi giao diện"
-            style={{ marginRight: '15px', cursor: 'pointer' }} // CSS inline tạm thời để căn chỉnh
-        >
-            {theme === 'dark' ? "☀️" : "🌙"}
-        </button>
+      {/* User Info */}
+      <div
+        className="header-right"
+        style={{ display: "flex", alignItems: "center", gap: "15px" }}
+      >
+        {toggleDarkMode && (
+          <button className="theme-toggle-btn" onClick={toggleDarkMode}>
+            {isDarkMode ? "☀️" : "🌙"}
+          </button>
+        )}
 
-        {/* User Profile (Click vào đây để Đăng xuất) */}
-        {user ? (
-          <div 
-            className="user-profile-container" 
-            onClick={handleSignOut} // QUAN TRỌNG: Gắn sự kiện click vào đây
-            title="Bấm để đăng xuất"
-            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
-          >
-            <div className="user-info" style={{ textAlign: 'right' }}>
-              <div className="user-name" style={{ fontWeight: 'bold' }}>
-                {user.displayName || "Sinh viên"}
-              </div>
-              <div className="user-email" style={{ fontSize: '12px', opacity: 0.8 }}>
-                {user.email}
-              </div>
-            </div>
-            
-            <div className="user-avatar">
-              {user.photoURL ? (
-                <img 
-                    src={user.photoURL} 
-                    alt="Avatar" 
-                    style={{ width: '40px', height: '40px', borderRadius: '50%' }} 
-                />
-              ) : (
-                <div style={{ 
-                    width: '40px', height: '40px', borderRadius: '50%', 
-                    backgroundColor: '#ff69b4', color: 'white',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold'
-                }}>
-                    {user.displayName?.charAt(0)}
+        {isLoggedIn && user ? (
+          // --- GIAO DIỆN ĐÃ ĐĂNG NHẬP ---
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            {/* Thông tin User */}
+            <div
+              style={{
+                textAlign: "right",
+                padding: "5px 10px",
+                borderRadius: "8px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: "bold", fontSize: "13px" }}>
+                  {user.displayName}
                 </div>
-              )}
+                <div style={{ fontSize: "11px", opacity: 0.7 }}>
+                  {user.email}
+                </div>
+              </div>
+              <img
+                src={user.photoURL || undefined} // Added || undefined for type safety
+                alt="Avatar"
+                style={{ width: "35px", height: "35px", borderRadius: "50%" }}
+              />
             </div>
+
+            {/* --- NÚT ĐĂNG XUẤT (TEXT) --- */}
+            {/* Dùng nút chữ to rõ ràng, không dùng icon để tránh lỗi hiển thị */}
+            <button
+              onClick={handleSignOut}
+              style={{
+                backgroundColor: "#d32f2f" /* Màu đỏ */,
+                color: "white",
+                border: "none",
+                padding: "8px 15px",
+                borderRadius: "5px",
+                cursor: "pointer" /* Hiện bàn tay */,
+                fontWeight: "bold",
+                fontSize: "13px",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+              }}
+            >
+              ĐĂNG XUẤT
+            </button>
           </div>
         ) : (
-          /* Nút đăng nhập nếu chưa có user */
-          <button className="login-btn">Đăng nhập</button>
+          // --- NÚT ĐĂNG NHẬP ---
+          <button
+            className="login-btn"
+            onClick={handleSignIn}
+            style={{
+              padding: "8px 15px",
+              cursor: "pointer",
+              borderRadius: "20px",
+              fontWeight: "bold",
+            }}
+          >
+            Sign in with Google
+          </button>
         )}
       </div>
-    </header>
+    </div>
   );
-}
+};
 
 export default Header;

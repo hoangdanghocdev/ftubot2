@@ -1,7 +1,18 @@
 /* Theme Variables */
 html.light {
   --bg-primary: #ffffff;
-  --text-color: #202123;
+  --bg-secondary: #f7f7f7;
+  --bg-bubble: #e0e0e0; /* New: light bubble background */
+  --bg-hover: #e0e0e0; /* New: light hover background */
+  --input-bg: #f9f9f9; /* New: light input background */
+
+  --text-primary: #202123;
+  --text-secondary: #8e8ea0;
+  --text-gray: #8e8ea0;
+  --text-black: #202123; /* New: for black text in light mode */
+
+  --ftu-red: #da251d; /* New: defined FTU red color */
+
   --surface-color: #f0f0f0;
   --border-color: #e0e0e0;
   --header-bg-color: #ffffff;
@@ -12,7 +23,18 @@ html.light {
 
 html.dark {
   --bg-primary: #1a1a1a;
-  --text-color: #f0f0f0;
+  --bg-secondary: #222222;
+  --bg-bubble: #333333; /* New: dark bubble background */
+  --bg-hover: #3a3a3a; /* New: dark hover background */
+  --input-bg: #2a2a2a; /* New: dark input background */
+
+  --text-primary: #f0f0f0;
+  --text-secondary: #b0b0b0; /* Dark mode subtle text */
+  --text-gray: #b0b0b0;
+  --text-black: #f0f0f0; /* New: for "black" text in dark mode (should be light) */
+
+  --ftu-red: #da251d; /* Consistent: defined FTU red color */
+
   --surface-color: #2a2a2a;
   --border-color: #444444;
   --header-bg-color: #1a1a1a;
@@ -21,37 +43,50 @@ html.dark {
   --chat-input-border: #444444;
 }
 
-/* --- SỬA LỖI NÚT TOGGLE --- */
-/* Đảm bảo nút toggle không bị dính màu nền đỏ */
-.theme-toggle, .switch-container {
-    background-color: transparent !important; /* Xóa nền đỏ nếu có */
-    box-shadow: none !important;
-    border: none !important;
+/* --- 1. SỬA LỖI NÚT TOGGLE BỊ ĐỎ --- */
+/* Xóa màu nền đỏ và viền nếu nó đang bị thừa kế từ class nút chung */
+.theme-toggle,
+.switch-container {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 /* Chỉnh màu icon mặt trăng/mặt trời */
-.theme-toggle svg, .theme-toggle span {
-    color: inherit; /* Theo màu chữ hiện tại */
+.theme-toggle svg,
+.theme-toggle span {
+  color: inherit; /* Theo màu chữ hiện tại */
 }
 
-/* --- ĐỒNG BỘ DARK MODE CHO SIDEBAR --- */
-/* Khi body có class dark-mode, sidebar cũng phải tối theo */
-html.dark .sidebar { /* Adapted from body.dark-mode */
-    background-color: #000000; /* Hoặc #202123 cho xám đen */
-    color: #ffffff;
-    border-right: 1px solid #333; /* Viền mờ ngăn cách */
+/* --- 2. ĐỒNG BỘ DARK MODE CHO SIDEBAR --- */
+/* Khi body là dark-mode, ép sidebar phải chuyển màu đen */
+html.dark .sidebar {
+  /* Adapted from body.dark-mode */
+  background-color: #171717 !important; /* Màu đen xám dịu mắt */
+  border-right: 1px solid #333; /* Viền ngăn cách mờ */
 }
 
-/* Đổi màu chữ trong sidebar khi dark mode */
-html.dark .sidebar-item, /* Adapted from body.dark-mode */
-html.dark .sidebar-text { /* Adapted from body.dark-mode */
-    color: #ececec;
+/* Đổi màu chữ trong sidebar sang trắng/xám khi dark mode */
+html.dark .sidebar .sidebar-item, /* Adapted from body.dark-mode */
+html.dark .sidebar span, /* Adapted from body.dark-mode */
+html.dark .sidebar div {
+  /* Adapted from body.dark-mode */
+  color: #ececec !important;
 }
 
-/* Đổi màu nền Header khi dark mode (để khớp với ảnh) */
-html.dark .header-container { /* Adapted from body.dark-mode */
-    background-color: #202123; /* Màu tối */
-    color: white;
+/* Đổi màu icon trong sidebar khi dark mode */
+html.dark .sidebar svg {
+  /* Adapted from body.dark-mode */
+  fill: #ececec !important;
+  color: #ececec !important;
+}
+
+/* --- 3. ĐỒNG BỘ HEADER (Nếu cần) --- */
+html.dark .header-container {
+  /* Adapted from body.dark-mode */
+  background-color: #171717 !important;
+  color: white !important;
+  border-bottom: 1px solid #333;
 }
 
 /* Container chính của User Profile */
@@ -159,7 +194,7 @@ html.dark .header-container { /* Adapted from body.dark-mode */
 }
 
 .dropdown-item.logout {
-  color: #DA251D; /* Keep red for logout */
+  color: #da251d; /* Keep red for logout */
   font-weight: bold;
   border-top: 1px solid var(--border-color); /* Use theme variable */
 }
@@ -167,4 +202,155 @@ html.dark .header-container { /* Adapted from body.dark-mode */
 /* Hide the old logout icon since it's now in the dropdown */
 .user-profile-container .logout-icon {
   display: none;
+}
+
+/* --- SỬA LỖI UI DARK MODE --- */
+
+/* 1. Ép Sidebar chuyển màu tối khi bật Dark Mode */
+html.dark .sidebar {
+  background-color: #171717 !important; /* Màu đen xám */
+  border-right: 1px solid #333 !important; /* Viền mờ */
+  color: #ffffff !important;
+}
+
+/* 2. Đổi màu chữ và icon trong Sidebar sang trắng */
+html.dark .sidebar span,
+html.dark .sidebar h3,
+html.dark .sidebar div,
+html.dark .sidebar a {
+  color: #ececec !important;
+}
+
+html.dark .sidebar svg {
+  fill: #ececec !important;
+  color: #ececec !important;
+}
+
+/* 3. Xóa màu đỏ ở nút Toggle (nếu bị dính) */
+.theme-toggle,
+button.theme-toggle {
+  background-color: transparent !important; /* Xóa nền đỏ */
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* 4. Hiệu ứng khi di chuột vào nút Sign Out (User Profile) */
+.user-profile-container {
+  cursor: pointer; /* Biến con trỏ thành bàn tay để biết là bấm được */
+  transition: background 0.2s;
+  border-radius: 8px;
+  padding: 5px;
+}
+
+.user-profile-container:hover {
+  background-color: rgba(0, 0, 0, 0.05); /* Hover nhẹ ở Light mode */
+}
+
+html.dark .user-profile-container:hover {
+  background-color: rgba(255, 255, 255, 0.1); /* Hover nhẹ ở Dark mode */
+}
+
+/* --- Header Layout --- */
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: #fff;
+  border-bottom: 1px solid #ddd;
+  position: relative;
+  z-index: 1000; /* Đẩy header lên trên cùng để không bị che */
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  z-index: 1001; /* Đảm bảo các nút bên phải nổi lên trên */
+}
+
+/* --- Wrapper bao quanh user và nút logout --- */
+.user-profile-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Khoảng cách giữa khung tên và nút logout */
+}
+
+/* --- Khung hiển thị tên & avatar --- */
+.user-info-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 15px;
+  background-color: #f0f2f5;
+  border-radius: 30px;
+  user-select: none; /* Không cho bôi đen text */
+}
+
+/* --- NÚT ĐĂNG XUẤT CỨNG (QUAN TRỌNG) --- */
+.btn-logout-explicit {
+  background-color: #ffe5e5; /* Nền đỏ nhạt */
+  color: #d32f2f; /* Icon đỏ đậm */
+  border: 1px solid #ffcccc;
+  border-radius: 50%; /* Hình tròn */
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer !important; /* BẮT BUỘC hiện hình bàn tay */
+  transition: all 0.2s ease;
+  z-index: 1002; /* Cao nhất để chắc chắn bấm được */
+}
+
+.btn-logout-explicit:hover {
+  background-color: #d32f2f;
+  color: white;
+  transform: scale(1.1); /* Phóng to nhẹ khi di chuột vào */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* --- Text Styles --- */
+.user-text {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+}
+.u-name {
+  font-weight: bold;
+  font-size: 14px;
+  color: #333;
+}
+.u-email {
+  font-size: 11px;
+  color: #666;
+}
+.u-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+/* --- Dark Mode --- */
+body.dark-mode .header-container {
+  background-color: #1e1e1e;
+  border-color: #333;
+}
+body.dark-mode .user-info-box {
+  background-color: #333;
+}
+body.dark-mode .u-name {
+  color: #fff;
+}
+body.dark-mode .u-email {
+  color: #ccc;
+}
+
+/* Ép Header luôn nằm trên các thành phần khác */
+.header-container {
+  position: relative !important;
+  z-index: 9999 !important; /* Số cực lớn để đè lên mọi thứ */
+  background-color: var(
+    --bg-primary
+  ); /* Đảm bảo header có nền, không bị trong suốt */
 }

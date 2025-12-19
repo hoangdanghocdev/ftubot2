@@ -66,7 +66,19 @@ const Header: React.FC<HeaderProps> = ({
       </div>
       <div className="flex items-center gap-3">
         {user ? (
-          <UserProfileDisplay user={user} />
+          <>
+            <UserProfileDisplay user={user} />
+            <button
+              onClick={signOutUser}
+              className="px-4 py-2 text-sm font-medium rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--ftu-red)] transition-colors"
+              style={{
+                backgroundColor: 'var(--ftu-red)',
+                color: 'white',
+              }}
+            >
+              Sign Out
+            </button>
+          </>
         ) : (
           <button
             onClick={signInWithGoogle}
