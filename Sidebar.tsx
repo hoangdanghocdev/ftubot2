@@ -7,6 +7,7 @@ import {
   CopyrightIcon,
 } from "./components/icons";
 import { User } from "firebase/auth";
+import { useTheme } from "./ThemeContext"; // Import hook đã tạo
 
 export interface ChatSession {
   id: number;
@@ -36,6 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState("");
   const editInputRef = useRef<HTMLInputElement>(null);
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     if (editingId !== null && editInputRef.current) {
@@ -74,32 +76,36 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <div
-      className={`relative bg-black p-2 flex flex-col transition-all duration-300 ease-in-out ${
+      className={`relative p-2 flex flex-col transition-all duration-300 ease-in-out ${
         isExpanded ? "w-64" : "w-16"
       }`}
+      style={{
+        backgroundColor: 'var(--bg-secondary)',
+        borderColor: 'var(--border-color)'
+      }}
     >
       <div className="flex items-center justify-between mb-4 h-12 px-1">
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="p-2 rounded-full hover:bg-gray-800"
+          className="p-2 rounded-full hover:bg-[var(--bg-hover)]"
           aria-label="Toggle sidebar"
         >
-          <MenuIcon className="w-6 h-6 text-gray-400" />
+          <MenuIcon className="w-6 h-6 text-[var(--ftu-red)]" />
         </button>
         {isExpanded && (
           <button
             onClick={onNewChat}
-            className="p-2 rounded-full hover:bg-gray-800"
+            className="p-2 rounded-full hover:bg-[var(--bg-hover)]"
             aria-label="New Chat"
           >
-            <PlusIcon className="w-6 h-6 text-gray-400" />
+            <PlusIcon className="w-6 h-6 text-[var(--ftu-red)]" />
           </button>
         )}
       </div>
 
       <nav className="flex-1 overflow-y-auto">
         {isExpanded && (
-          <div className="px-3 pb-2 text-xs font-semibold text-gray-500 uppercase">
+          <div className="px-3 pb-2 text-xs font-semibold text-[var(--text-gray)] uppercase">
             Recent
           </div>
         )}
@@ -110,11 +116,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => editingId !== chat.id && onChatSelect(chat.id)}
                 className={`w-full flex items-center p-3 my-1 rounded-lg text-left transition-colors cursor-pointer ${
                   activeChatId === chat.id
-                    ? "bg-gray-800 text-gray-100"
-                    : "text-gray-400 hover:bg-gray-800 hover:text-gray-100"
+                    ? "bg-[var(--bg-hover)] text-[var(--ftu-red)]"
+                    : "text-[var(--text-gray)] hover:bg-[var(--bg-hover)] hover:text-[var(--ftu-red)]"
                 }`}
               >
-                <HistoryIcon className="w-5 h-5 flex-shrink-0" />
+                <HistoryIcon className="w-5 h-5 flex-shrink-0 text-[var(--text-gray)]" />
                 {isExpanded && (
                   <>
                     {editingId === chat.id ? (
@@ -125,7 +131,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         onChange={(e) => setEditingName(e.target.value)}
                         onBlur={() => handleFinishEditing(chat.id)}
                         onKeyDown={(e) => handleKeyDown(e, chat.id)}
-                        className="ml-4 flex-1 bg-transparent border border-gray-500 rounded px-1 py-0"
+                        className="ml-4 flex-1 bg-[var(--input-bg)] border border-[var(--border-color)] rounded px-1 py-0 text-[var(--text-primary)]"
                       />
                     ) : (
                       <span className="ml-4 font-medium whitespace-nowrap overflow-hidden text-ellipsis flex-1">
@@ -140,24 +146,25 @@ const Sidebar: React.FC<SidebarProps> = ({
                   className={`absolute right-2 top-1/2 -translate-y-1/2 flex items-center rounded-lg transition-opacity duration-200 
                     ${
                       activeChatId === chat.id
-                        ? "opacity-100 bg-gray-800"
-                        : "opacity-0 group-hover:opacity-100 bg-gray-700"
+                        ? "opacity-100 bg-[var(--bg-hover)]"
+                        : "opacity-0 group-hover:opacity-100 bg-[var(--bg-hover)]"
                     }`}
                 >
                   <button
                     onClick={() => handleStartEditing(chat)}
-                    className="p-1 rounded-full hover:bg-gray-600"
+                    className="p-1 rounded-full hover:bg-[var(--bg-hover)]"
                     aria-label="Rename chat"
                   >
-                    <EditIcon className="w-4 h-4 text-gray-300" />
+                    <EditIcon className="w-4 h-4 text-[var(--text-gray)]" />
                   </button>
                   <button
                     onClick={() => onDeleteChat(chat.id)}
-                    className="p-1 rounded-full hover:bg-gray-600"
+                    className="p-1 rounded-full hover:bg-[var(--bg-hover)]"
                     aria-label="Delete chat"
                   >
-                    <XCircleIcon className="w-4 h-4" />
+                    <PlusIcon className="w-4 h-4 text-[var(--text-gray)]" />
                   </button>
+
                 </div>
               )}
             </li>
@@ -165,10 +172,34 @@ const Sidebar: React.FC<SidebarProps> = ({
         </ul>
       </nav>
 
+      {/* --- Footer Sidebar: Nút Dark Mode --- */}
+      <div className="p-4 border-t" style={{ borderColor: 'var(--border-color)' }}>
+        <label className="flex items-center cursor-pointer justify-between group">
+          <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">
+             {/* Icon trăng khuyết/mặt trời tùy logic hiển thị */}
+             <span>Dark mode</span>
+          </div>
+          
+          {/* Custom Toggle Switch UI */}
+          <div className="relative">
+            <input 
+              type="checkbox" 
+              className="sr-only" 
+              checked={theme === 'dark'} 
+              onChange={toggleTheme} 
+            />
+            {/* Thanh trượt (Track) */}
+            <div className={`w-10 h-6 rounded-full shadow-inner transition-colors duration-300 ${theme === 'dark' ? 'bg-[var(--ftu-red)]' : 'bg-gray-300'}`}></div>
+            {/* Nút tròn (Dot) */}
+            <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow transition-transform duration-300 ${theme === 'dark' ? 'translate-x-4' : 'translate-x-0'}`}></div>
+          </div>
+        </label>
+      </div>
+
       <div className="mt-auto">
         {isExpanded && (
-          <div className="flex items-center p-3 text-sm text-gray-500">
-            <CopyrightIcon className="w-5 h-5 flex-shrink-0" />
+          <div className="flex items-center p-3 text-sm text-[var(--text-secondary)]">
+            <CopyrightIcon className="w-5 h-5 flex-shrink-0 text-[var(--text-gray)]" />
             <span className="ml-4 font-medium whitespace-nowrap">
               Design by 2M3H
             </span>
@@ -180,22 +211,3 @@ const Sidebar: React.FC<SidebarProps> = ({
 };
 
 export default Sidebar;
-
-const XCircleIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    <circle cx="12" cy="12" r="10" />
-    <line x1="15" y1="9" x2="9" y2="15" />
-    <line x1="9" y1="9" x2="15" y2="15" />
-  </svg>
-);

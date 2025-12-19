@@ -9,23 +9,30 @@ interface MessageListProps {
 
 const LoadingIndicator: React.FC = () => (
   <div className="flex items-center justify-start p-4">
-    <div className="flex items-center gap-2 bg-gray-200 dark:bg-gray-700 rounded-2xl p-3 text-gray-800 dark:text-gray-200 shadow-sm">
-      <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></div>
-      <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse [animation-delay:0.2s]"></div>
-      <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse [animation-delay:0.4s]"></div>
+    <div className="flex items-center gap-2 rounded-2xl p-3 shadow-sm"
+      style={{
+        backgroundColor: 'var(--bg-secondary)',
+        color: 'var(--text-primary)',
+      }}
+    >
+      <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--text-secondary)' }}></div>
+      <div className="w-2 h-2 rounded-full animate-pulse [animation-delay:0.2s]" style={{ backgroundColor: 'var(--text-secondary)' }}></div>
+      <div className="w-2 h-2 rounded-full animate-pulse [animation-delay:0.4s]" style={{ backgroundColor: 'var(--text-secondary)' }}></div>
     </div>
   </div>
 );
 
 const WelcomeScreen: React.FC = () => (
-  <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 dark:text-gray-400 pb-20">
+  <div className="flex flex-col items-center justify-center h-full text-center pb-20"
+    style={{ color: 'var(--text-secondary)' }}
+  >
     <img
       src="logo/FTU-logo.png"
       alt="FTU Logo"
       className="w-20 h-20 mb-4 rounded-full"
     />
-    <h2 className="text-4xl font-bold text-white">Hello, I'm FTU AI</h2>
-    <p className="max-w-md mt-2 text-white">How can I help you today?</p>
+    <h2 className="text-4xl font-bold transition-colors" style={{ color: 'var(--text-black)' }}>Hello, I'm FTU AI</h2>
+    <p className="max-w-md mt-2 transition-colors" style={{ color: 'var(--text-gray)' }}>How can I help you today?</p>
   </div>
 );
 

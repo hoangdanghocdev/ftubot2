@@ -5,6 +5,7 @@ import { signInWithGoogle, signOutUser } from "../services/authService";
 import { auth } from "../services/firebase";
 import UserCard from "./UserCard";
 import PersonaSelector from "./PersonaSelector";
+import UserProfileDisplay from "./UserProfileDisplay";
 
 interface HeaderProps {
   isLoggedIn: boolean;
@@ -50,87 +51,36 @@ const Header: React.FC<HeaderProps> = ({
   }, []);
 
   return (
-    <header className="flex items-center justify-between p-4 bg-black border-b border-gray-800">
+    <header
+      className="flex items-center justify-between p-4 border-b"
+      style={{
+        backgroundColor: 'var(--bg-primary)',
+        borderColor: 'var(--border-color)',
+      }}
+    >
       <div className="flex items-center gap-3">
         <img src="logo/FTU-logo.png" alt="FTU Logo" className="w-8 h-8" />
-        <h1 className="text-xl font-bold text-gray-200 uppercase">
+        <h1 className="text-xl font-bold uppercase" style={{ color: 'var(--ftu-red)' }}>
           TRƯỜNG ĐẠI HỌC NGOẠI THƯƠNG
         </h1>
       </div>
       <div className="flex items-center gap-3">
-        {isLoggedIn && onFeatureChange && (
-          <div className="flex items-center gap-2 border-r border-gray-700 pr-3">
-            <button
-              onClick={() => onFeatureChange('chat')}
-              className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                activeFeature === 'chat'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-800'
-              }`}
-            >
-              Chat
-            </button>
-            <button
-              onClick={() => onFeatureChange('forms')}
-              className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                activeFeature === 'forms'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-800'
-              }`}
-            >
-              Forms
-            </button>
-            <button
-              onClick={() => onFeatureChange('audio')}
-              className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                activeFeature === 'audio'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-800'
-              }`}
-            >
-              Audio
-            </button>
-          </div>
-        )}
-        {isLoggedIn && (
-          <PersonaSelector
-            selectedPersonaId={selectedPersonaId}
-            onPersonaChange={onPersonaChange}
-          />
-        )}
-        <div className="relative" ref={userCardRef}>
-        {isLoggedIn && user ? (
-          <>
-            <img
-              src={
-                user.photoURL ||
-                `https://ui-avatars.com/api/?name=${user.displayName}&background=random`
-              }
-              alt="User Avatar"
-              className="w-10 h-10 rounded-full cursor-pointer border-2 border-transparent hover:border-blue-500 transition-all"
-              onClick={() => setIsUserCardVisible(!isUserCardVisible)}
-              title="Mở menu người dùng"
-            />
-            {isUserCardVisible && (
-              <UserCard
-                user={user}
-                onSignOut={() => {
-                  signOutUser();
-                  setIsUserCardVisible(false);
-                }}
-              />
-            )}
-          </>
+        {user ? (
+          <UserProfileDisplay user={user} />
         ) : (
           <button
             onClick={signInWithGoogle}
-            className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700"
+            className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--ftu-red)] transition-colors"
+            style={{
+                backgroundColor: 'var(--bg-primary)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)',
+            }}
           >
             <GoogleIcon className="w-5 h-5" />
             Sign In with Google
           </button>
         )}
-        </div>
       </div>
     </header>
   );

@@ -27,40 +27,41 @@ const renderMarkdown = (text: string) => {
       return (
         <pre
           key={index}
-          className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md my-2 whitespace-pre-wrap font-mono text-sm"
+          className="p-3 rounded-md my-2 whitespace-pre-wrap font-mono text-sm"
+          style={{ backgroundColor: 'var(--bg-secondary)' }}
         >
           <code>{code}</code>
         </pre>
       );
-    }
+    } else {
+      const paragraphs = part.trim().split("\n\n");
+      return paragraphs.map((para, pIndex) => {
+        const lines = para.trim().split("\n");
+        const listItems: string[] = [];
+        const otherLines: string[] = [];
 
-    const paragraphs = part.trim().split("\n\n");
-    return paragraphs.map((para, pIndex) => {
-      const lines = para.trim().split("\n");
-      const listItems: string[] = [];
-      const otherLines: string[] = [];
+        lines.forEach((line) => {
+          if (line.trim().startsWith("* ") || line.trim().startsWith("- ")) {
+            listItems.push(line.trim().substring(2));
+          } else {
+            otherLines.push(line);
+          }
+        });
 
-      lines.forEach((line) => {
-        if (line.trim().startsWith("* ") || line.trim().startsWith("- ")) {
-          listItems.push(line.trim().substring(2));
-        } else {
-          otherLines.push(line);
-        }
+        return (
+          <div key={`${index}-${pIndex}`}>
+            {otherLines.length > 0 && <p>{renderInline(otherLines.join(" "))}</p>}
+            {listItems.length > 0 && (
+              <ul className="list-disc list-inside space-y-1 my-2">
+                {listItems.map((item, i) => (
+                  <li key={i}>{renderInline(item)}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        );
       });
-
-      return (
-        <div key={`${index}-${pIndex}`}>
-          {otherLines.length > 0 && <p>{renderInline(otherLines.join(" "))}</p>}
-          {listItems.length > 0 && (
-            <ul className="list-disc list-inside space-y-1 my-2">
-              {listItems.map((item, i) => (
-                <li key={i}>{renderInline(item)}</li>
-              ))}
-            </ul>
-          )}
-        </div>
-      );
-    });
+    }
   });
 };
 
@@ -87,12 +88,7 @@ const PartRenderer: React.FC<{ part: MessagePart }> = ({ part }) => {
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   const isUser = message.role === "user";
 
-  const bubbleClasses = isUser
-    ? "bg-gray-700 text-gray-100"
-    : "bg-gray-800 text-gray-200";
-
   const containerClasses = isUser ? "justify-end" : "justify-start";
-
   const Icon = isUser ? UserIcon : SparklesIcon;
 
   return (
@@ -105,15 +101,22 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         />
       )}
       <div
-        className={`flex flex-col max-w-lg md:max-w-xl lg:max-w-2xl p-3 rounded-2xl shadow-sm ${bubbleClasses}`}
+        className={`flex flex-col max-w-lg md:max-w-xl lg:max-w-2xl p-3 rounded-2xl shadow-sm text-sm transition-colors duration-300 ${isUser ? 'rounded-tr-none' : 'rounded-tl-none'}`}
+        style={{
+          backgroundColor: isUser ? 'var(--ftu-red)' : 'var(--bg-bubble)',
+          color: isUser ? '#ffffff' : 'var(--text-primary)',
+        }}
       >
         {message.parts.map((part, index) => (
           <PartRenderer key={index} part={part} />
         ))}
       </div>
       {isUser && (
-        <div className="w-8 h-8 flex-shrink-0 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
-          <Icon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+        <div
+          className="w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: 'var(--bg-secondary)' }}
+        >
+          <Icon className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
         </div>
       )}
     </div>

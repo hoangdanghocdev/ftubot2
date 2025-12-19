@@ -10,6 +10,7 @@ import { getUserPersona, saveUserPersona } from "./services/firestoreService";
 import { getDefaultPersona } from "./services/personaService";
 import FormFilling from "./components/FormFilling";
 import AudioCreation from "./components/AudioCreation";
+import { ThemeProvider } from "./ThemeContext"; // Import ThemeProvider
 
 export interface Conversation {
   [chatId: number]: Message[];
@@ -23,12 +24,17 @@ const App: React.FC = () => {
     1: [],
   });
   const [activeChatId, setActiveChatId] = useState<number>(1);
-
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [userMessageCount, setUserMessageCount] = useState<number>(0);
-  const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null);
-  const [activeFeature, setActiveFeature] = useState<'chat' | 'forms' | 'audio'>('chat');
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(
+    null
+  );
+  const [activeFeature, setActiveFeature] = useState<
+    "chat" | "forms" | "audio"
+  >("chat");
+
+
 
   const GUEST_MESSAGE_LIMIT = 3;
 
@@ -57,18 +63,21 @@ const App: React.FC = () => {
         setActiveChatId(initialChatId);
         setUserMessageCount(0);
         setSelectedPersonaId(null);
-        setActiveFeature('chat');
+        setActiveFeature("chat");
       }
     });
     return () => unsubscribe();
   }, []);
 
-  const handlePersonaChange = useCallback(async (personaId: string) => {
-    setSelectedPersonaId(personaId);
-    if (user) {
-      await saveUserPersona(user.uid, personaId);
-    }
-  }, [user]);
+  const handlePersonaChange = useCallback(
+    async (personaId: string) => {
+      setSelectedPersonaId(personaId);
+      if (user) {
+        await saveUserPersona(user.uid, personaId);
+      }
+    },
+    [user]
+  );
 
   const handleNewChat = useCallback(() => {
     const newChatId = Date.now();
@@ -115,10 +124,13 @@ const App: React.FC = () => {
       if (!prompt.trim() && !imageFile) return;
 
       // Helper function to convert file to base64 generative part
-      const fileToGenerativePart = async (file: File): Promise<ImagePart['inlineData']> => {
+      const fileToGenerativePart = async (
+        file: File
+      ): Promise<ImagePart["inlineData"]> => {
         const base64EncodedData = await new Promise<string>((resolve) => {
           const reader = new FileReader();
-          reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+          reader.onloadend = () =>
+            resolve((reader.result as string).split(",")[1]);
           reader.readAsDataURL(file);
         });
         return {
@@ -190,13 +202,11 @@ const App: React.FC = () => {
       }
 
       setIsLoading(true);
-
       try {
-        // Call backend proxy
-        const response = await fetch('/api/chat', {
-          method: 'POST',
+        const response = await fetch("/api/chat", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             prompt: prompt,
@@ -206,13 +216,20 @@ const App: React.FC = () => {
         });
 
         if (!response.ok || !response.body) {
-          throw new Error('Failed to get streaming response from server.');
+          // In lỗi ra console để biết nó là 404 hay 500
+          console.error("Lỗi HTTP:", response.status, response.statusText);
+          const errorText = await response.text();
+          console.error("Chi tiết lỗi từ Server:", errorText);
+
+          throw new Error(
+            `Server error: ${response.status} ${response.statusText}`
+          );
         }
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let fullResponse = "";
-        let buffer = '';
+        let buffer = "";
 
         // Read Server-Sent Events stream
         while (true) {
@@ -220,13 +237,18 @@ const App: React.FC = () => {
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
 
           for (const line of lines) {
-            if (line.startsWith('data: ')) {
+            if (line.startsWith("data: ")) {
               try {
-                const data = JSON.parse(line.slice(6));
+                const jsonString = line.slice(6);
+                if (!jsonString.trim()) {
+                  // Bỏ qua các dòng dữ liệu rỗng
+                  continue;
+                }
+                const data = JSON.parse(jsonString);
                 if (data.error) {
                   throw new Error(data.error);
                 }
@@ -236,18 +258,23 @@ const App: React.FC = () => {
                 if (data.text) {
                   fullResponse += data.text;
                   // Update UI in real-time
-                  setConversations(prev => {
+                  setConversations((prev) => {
                     const currentConv = [...(prev[activeChatId] || [])];
                     const lastMessage = currentConv[currentConv.length - 1];
-                    if (lastMessage && lastMessage.role === 'model') {
+                    if (lastMessage && lastMessage.role === "model") {
                       lastMessage.parts = [{ text: fullResponse }];
                     }
                     return { ...prev, [activeChatId]: currentConv };
                   });
                 }
               } catch (e) {
-                if (!(e instanceof SyntaxError)) {
-                  throw e;
+                console.error("Error parsing JSON from SSE line:", line, e);
+                if (e instanceof SyntaxError) {
+                  console.error(
+                    "Malformed JSON received from server. Backend có thể đang gửi thêm ký tự hoặc JSON không hợp lệ."
+                  );
+                } else {
+                  throw e; // Ném lại các lỗi khác để điều tra thêm
                 }
               }
             }
@@ -269,59 +296,78 @@ const App: React.FC = () => {
         setIsLoading(false);
       }
     },
-    [user, userMessageCount, conversations, activeChatId, chatHistory, selectedPersonaId]
+    [
+      user,
+      userMessageCount,
+      conversations,
+      activeChatId,
+      chatHistory,
+      selectedPersonaId,
+    ]
   );
 
   const isChatBlocked = !user && userMessageCount >= GUEST_MESSAGE_LIMIT;
 
   return (
-    <div className="flex h-screen bg-black font-sans">
-      <Sidebar
-        user={user}
-        activeChatId={activeChatId}
-        onChatSelect={setActiveChatId}
-        onNewChat={handleNewChat}
-        chatHistory={chatHistory}
-        onDeleteChat={handleDeleteChat}
-        onRenameChat={handleRenameChat}
-      />
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <Header 
-          isLoggedIn={!!user}
-          selectedPersonaId={selectedPersonaId}
-          onPersonaChange={handlePersonaChange}
-          activeFeature={activeFeature}
-          onFeatureChange={setActiveFeature}
+    <ThemeProvider>
+      <div className="flex h-screen font-sans">
+        <Sidebar
+          user={user}
+          activeChatId={activeChatId}
+          onChatSelect={setActiveChatId}
+          onNewChat={handleNewChat}
+          chatHistory={chatHistory}
+          onDeleteChat={handleDeleteChat}
+          onRenameChat={handleRenameChat}
         />
-        <div className="relative flex-1 w-full flex flex-col overflow-hidden">
-          {activeFeature === 'chat' && (
-            <>
-              <main className="flex-1 overflow-y-auto">
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 h-full">
-                  <MessageList messages={messages} isLoading={isLoading} />
-                </div>
-              </main>
-              <footer className="w-full border-t border-gray-800 p-2 sm:p-4 bg-black/80 backdrop-blur-sm">
-                <div className="max-w-4xl mx-auto">
-                  <ChatInput
-                    onSend={handleSend}
-                    isLoading={isLoading}
-                    isBlocked={isChatBlocked}
-                  />
-                </div>
-              </footer>
-            </>
-          )}
-          {activeFeature === 'forms' && user && (
-            <FormFilling userId={user.uid} />
-          )}
-          {activeFeature === 'audio' && user && (
-            <AudioCreation userId={user.uid} />
-          )}
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <Header
+            user={user}
+            selectedPersonaId={selectedPersonaId}
+            onPersonaChange={handlePersonaChange}
+            activeFeature={activeFeature}
+            onFeatureChange={setActiveFeature}
+          />
+          <div 
+            className="relative flex-1 w-full flex flex-col overflow-hidden transition-colors duration-300"
+            style={{ backgroundColor: 'var(--bg-primary)' }}
+          >
+            {activeFeature === "chat" && (
+              <>
+                <main className="flex-1 overflow-y-auto">
+                  <div className="max-w-4xl mx-auto px-4 sm:px-6 h-full">
+                    <MessageList messages={messages} isLoading={isLoading} />
+                  </div>
+                </main>
+                <footer
+                  className="w-full border-t p-2 sm:p-4 backdrop-blur-sm"
+                  style={{
+                    borderColor: 'var(--border-color)',
+                    backgroundColor: 'var(--bg-primary)', // Using --bg-primary, adjust if a different background is desired
+                  }}
+                >
+                  <div className="max-w-4xl mx-auto">
+                    <ChatInput
+                      onSend={handleSend}
+                      isLoading={isLoading}
+                      isBlocked={isChatBlocked}
+                    />
+                  </div>
+                </footer>
+              </>
+            )}
+            {activeFeature === "forms" && user && (
+              <FormFilling userId={user.uid} />
+            )}
+            {activeFeature === "audio" && user && (
+              <AudioCreation userId={user.uid} />
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </ThemeProvider>
   );
 };
 
 export default App;
+
