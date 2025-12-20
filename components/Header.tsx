@@ -1,16 +1,12 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { User, onAuthStateChanged } from "firebase/auth";
 import { GoogleIcon } from "./icons";
 import { signInWithGoogle, signOutUser } from "../services/authService";
 import { auth } from "../services/firebase";
-import UserCard from "./UserCard";
-import PersonaSelector from "./PersonaSelector";
-import UserProfileDisplay from "./UserProfileDisplay";
+import UserHeaderProfile from "./UserHeaderProfile";
 
 const Header: React.FC = () => {
   const [user, setUser] = useState<User | null>(auth.currentUser);
-  const [isUserCardVisible, setIsUserCardVisible] = useState(false);
-  const userCardRef = useRef<HTMLDivElement>(null);
 
   // Lắng nghe thay đổi trạng thái auth để cập nhật user object
   useEffect(() => {
@@ -20,21 +16,10 @@ const Header: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // Đóng thẻ user khi click ra ngoài
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        userCardRef.current &&
-        !userCardRef.current.contains(event.target as Node)
-      ) {
-        setIsUserCardVisible(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+  const handleLogout = () => {
+    signOutUser();
+    console.log("User signed out");
+  };
 
   return (
     <header
@@ -50,21 +35,9 @@ const Header: React.FC = () => {
           TRƯỜNG ĐẠI HỌC NGOẠI THƯƠNG
         </h1>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         {user ? (
-          <>
-            <UserProfileDisplay user={user} />
-            <button
-              onClick={signOutUser}
-              className="px-4 py-2 text-sm font-medium rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--ftu-red)] transition-colors"
-              style={{
-                backgroundColor: 'var(--ftu-red)',
-                color: 'white',
-              }}
-            >
-              Sign Out
-            </button>
-          </>
+          <UserHeaderProfile user={user} onLogout={handleLogout} />
         ) : (
           <button
             onClick={signInWithGoogle}
@@ -85,3 +58,5 @@ const Header: React.FC = () => {
 };
 
 export default Header;
+
+
