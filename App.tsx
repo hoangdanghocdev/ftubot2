@@ -338,18 +338,9 @@ const App: React.FC = () => {
           chatHistory={chatHistory}
           onDeleteChat={handleDeleteChat}
           onRenameChat={handleRenameChat}
-          activeFeature={activeFeature}
-          onFeatureChange={setActiveFeature}
         />
         <div className="flex flex-col flex-1 overflow-hidden">
-          <Header
-            isLoggedIn={!!user}
-            user={user}
-            selectedPersonaId={selectedPersonaId}
-            onPersonaChange={handlePersonaChange}
-            activeFeature={activeFeature}
-            onFeatureChange={setActiveFeature}
-          />
+          <Header />
           <div
             className="relative flex-1 w-full flex flex-col overflow-hidden transition-colors duration-300"
             style={{ backgroundColor: "var(--bg-primary)" }}

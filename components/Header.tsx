@@ -7,21 +7,7 @@ import UserCard from "./UserCard";
 import PersonaSelector from "./PersonaSelector";
 import UserProfileDisplay from "./UserProfileDisplay";
 
-interface HeaderProps {
-  isLoggedIn: boolean;
-  selectedPersonaId: string | null;
-  onPersonaChange: (personaId: string) => void;
-  activeFeature?: 'chat' | 'forms' | 'audio';
-  onFeatureChange?: (feature: 'chat' | 'forms' | 'audio') => void;
-}
-
-const Header: React.FC<HeaderProps> = ({ 
-  isLoggedIn, 
-  selectedPersonaId, 
-  onPersonaChange,
-  activeFeature = 'chat',
-  onFeatureChange 
-}) => {
+const Header: React.FC = () => {
   const [user, setUser] = useState<User | null>(auth.currentUser);
   const [isUserCardVisible, setIsUserCardVisible] = useState(false);
   const userCardRef = useRef<HTMLDivElement>(null);
