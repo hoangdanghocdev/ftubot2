@@ -116,12 +116,12 @@ html.dark .header-container {
 .user-name {
   font-weight: 700;
   font-size: 15px; /* Điều chỉnh lại cỡ chữ cho khớp ảnh */
-  color: var(--text-color); /* Use theme variable */
+  color: var(--text-primary); /* Use theme variable */
 }
 
 .user-email {
   font-size: 12px;
-  color: #8e8ea0; /* Keep gray for consistency, or define a specific theme variable if needed */
+  color: var(--text-secondary); /* Use theme variable for email */
 }
 
 /* Avatar Logic */
