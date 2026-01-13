@@ -77,8 +77,7 @@ html.dark .sidebar div {
 /* Đổi màu icon trong sidebar khi dark mode */
 html.dark .sidebar svg {
   /* Adapted from body.dark-mode */
-  fill: #ececec !important;
-  color: #ececec !important;
+  color: inherit !important;
 }
 
 /* --- 3. ĐỒNG BỘ HEADER (Nếu cần) --- */
@@ -204,35 +203,7 @@ html.dark .header-container {
   display: none;
 }
 
-/* --- SỬA LỖI UI DARK MODE --- */
 
-/* 1. Ép Sidebar chuyển màu tối khi bật Dark Mode */
-html.dark .sidebar {
-  background-color: #171717 !important; /* Màu đen xám */
-  border-right: 1px solid #333 !important; /* Viền mờ */
-  color: #ffffff !important;
-}
-
-/* 2. Đổi màu chữ và icon trong Sidebar sang trắng */
-html.dark .sidebar span,
-html.dark .sidebar h3,
-html.dark .sidebar div,
-html.dark .sidebar a {
-  color: #ececec !important;
-}
-
-html.dark .sidebar svg {
-  fill: #ececec !important;
-  color: #ececec !important;
-}
-
-/* 3. Xóa màu đỏ ở nút Toggle (nếu bị dính) */
-.theme-toggle,
-button.theme-toggle {
-  background-color: transparent !important; /* Xóa nền đỏ */
-  border: none !important;
-  box-shadow: none !important;
-}
 
 /* 4. Hiệu ứng khi di chuột vào nút Sign Out (User Profile) */
 .user-profile-container {
